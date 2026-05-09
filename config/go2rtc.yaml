@@ -1,0 +1,2 @@
+streams:
+  keime-cam: ffmpeg:device?video=/dev/video0&input_format=mjpeg&video_size=1280x720#video=h264
