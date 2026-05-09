@@ -7,3 +7,5 @@
 #サーボモータを遠隔制御してます。dockerfileにすることでOSバージョンUPによる影響もない、webRTCで画像遅延を最小限にできる
 
 #tailscaleVPN利用でセキュリティ確保になる。
+
+https://youtu.be/BbXfkFMo3rE
