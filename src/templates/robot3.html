@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>Robot Laboratory - Integrated Monitor</title>
+<style>
+/* 共通スタイル: robot3.jpg のサイバーパンクな質感を維持 */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:system-ui, sans-serif;
+  background:radial-gradient(circle at top,#1b2b4a 0,#050814 55%,#020308 100%);
+  color:#e5f7ff;height:100vh;display:flex;flex-direction:column;overflow: hidden;
+}
+header{
+  padding:12px 24px;border-bottom:1px solid rgba(0,255,255,0.2);
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(to right,rgba(0,0,0,0.6),rgba(0,40,80,0.4));
+}
+.status-pill{ padding:4px 12px; border-radius:999px; border:1px solid #00ffc8; color:#00ffc8; font-size:12px; text-transform:uppercase; }
+.hud-clock{ font-family:monospace; font-size:18px; color:#00ffc8; border:1px solid rgba(0,255,200,0.3); padding:4px 12px; border-radius:6px; }
+
+main{flex:1;display:grid;grid-template-columns:1.2fr 0.8fr;gap:16px;padding:16px;min-height:0;}
+.panel{background:rgba(3,10,25,0.9);border-radius:12px;border:1px solid rgba(0,255,255,0.18);padding:15px;display:flex;flex-direction:column;gap:12px;overflow:hidden;}
+.panel-title{font-size:11px;color:#7ee0ff;text-transform:uppercase;letter-spacing:0.15em;border-left:3px solid #00ffc8;padding-left:8px;margin-bottom:5px;}
+
+/* 2画面カメラ */
+.camera-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+.camera-box { background: #000; border-radius: 10px; border: 2px solid #1c1f24; overflow: hidden; position: relative; }
+.camera-box img { width: 100%; height: 100%; object-fit: cover; }
+.cam-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: #00ffc8; font-size: 9px; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,255,200,0.3); z-index: 10; }
+
+/* 右側データグリッド */
+.info-sidebar { display: flex; flex-direction: column; gap: 12px; }
+.data-table { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.data-item { padding: 8px 12px; background: rgba(0,5,15,0.5); border-radius: 6px; border: 1px solid rgba(0,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+.label { color: #6b7c96; font-size: 10px; text-transform: uppercase; }
+.value { color: #00ffc8; font-family: monospace; font-size: 14px; }
+
+/* モーター/パワー制御セクション */
+.motor-section { margin-top: 5px; }
+.motor-row { margin-bottom: 12px; }
+.motor-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-family: monospace; font-size: 12px; }
+.gauge-bg { background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden; }
+.gauge-fill { height: 100%; width: 0%; transition: width 0.1s ease-out; box-shadow: 0 0 10px rgba(0,255,200,0.5); }
+
+.log-list { height: 80px; padding: 10px; background: rgba(0,5,10,0.6); border-radius: 8px; border: 1px solid rgba(0,255,255,0.1); font-family: monospace; font-size: 11px; overflow-y: auto; color: #7ee0ff; }
+</style>
+</head>
+
+<body>
+<header>
+  <div class="title" style="letter-spacing: 0.2em;">AUTONOMOUS ROBOT LAB MONITOR</div>
+  <div id="connectionStatus" class="status-pill">ONLINE</div>
+  <div class="hud-clock" id="hudClock">2026-04-22 09:10:40</div>
+</header>
+
+<main>
+  <div style="display:flex; flex-direction:column; gap:16px; min-height:0;">
+    <section class="panel" style="flex: 1;">
+      <div class="panel-title">Robot Vision / Lidar Ready</div>
+      <div class="camera-grid">
+        <div class="camera-box">
+          <span class="cam-label">CAM 0: WIDE</span>
+          <img id="cam0" alt="WIDE-VIEW" onerror="handleError(this)">
+        </div>
+        <div class="camera-box">
+          <span class="cam-label">CAM 2: NORMAL</span>
+          <img id="cam2" alt="NORMAL-VIEW" onerror="handleError(this)">
+        </div>
+      </div>
+    </section>
+    <div class="log-list" id="logList"></div>
+  </div>
+
+  <div class="info-sidebar">
+    <section class="panel">
+      <div class="panel-title">System Metrics</div>
+      <div class="data-table">
+        <div class="data-item"><span class="label">CPU Load</span><span class="value">42%</span></div>
+        <div class="data-item"><span class="label">CPU Temp</span><span class="value">46.2℃</span></div>
+        <div class="data-item"><span class="label">Memory</span><span class="value">28%</span></div>
+        <div class="data-item"><span class="label">Net Latency</span><span class="value">12ms</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Sensor Intelligence</div>
+      <div class="data-table">
+        <div class="data-item"><span class="label">Front</span><span class="value">0.42m</span></div>
+        <div class="data-item"><span class="label">Rear</span><span class="value">0.88m</span></div>
+        <div class="data-item"><span class="label">Left</span><span class="value">0.63m</span></div>
+        <div class="data-item"><span class="label">Right</span><span class="value">0.51m</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Power & Drive Control</div>
+      <div class="motor-section">
+        <div class="data-item" style="margin-bottom: 15px;">
+          <span class="label">Battery Voltage</span>
+          <span class="value" style="color: #00ffc8;">12.4V (78%)</span>
+        </div>
+        
+        <div class="motor-row">
+          <div class="motor-header">
+            <span style="color: #6b7c96;">M1 SPEED (LEFT)</span>
+            <span id="valL">0.0 rpm</span>
+          </div>
+          <div class="gauge-bg"><div id="barL" class="gauge-fill" style="background: #00ffc8;"></div></div>
+        </div>
+
+        <div class="motor-row">
+          <div class="motor-header">
+            <span style="color: #6b7c96;">M2 SPEED (RIGHT)</span>
+            <span id="valR">0.0 rpm</span>
+          </div>
+          <div class="gauge-bg"><div id="barR" class="gauge-fill" style="background: #00ffc8;"></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const ROBOT_IP = "100.124.195.2";
+  const MAX_RPM = 150;
+
+  function updateClock(){
+    document.getElementById('hudClock').textContent = new Date().toLocaleString();
+  }
+
+  function startStreams() {
+    const t = new Date().getTime();
+    document.getElementById('cam0').src = `http://${ROBOT_IP}:5000/video_feed_0?t=${t}`;
+    document.getElementById('cam2').src = `http://${ROBOT_IP}:5000/video_feed_2?t=${t}`;
+  }
+
+  function handleError(img) {
+    img.src = "https://via.placeholder.com/400x300/050814/7ee0ff?text=CONNECTING...";
+  }
+
+  function fetchRobotData() {
+    fetch(`http://${ROBOT_IP}:5000/robot_data`)
+      .then(res => res.json())
+      .then(data => {
+        // RPM数値の更新
+        document.getElementById('valL').textContent = data.left_rpm.toFixed(1) + " rpm";
+        document.getElementById('valR').textContent = data.right_rpm.toFixed(1) + " rpm";
+
+        // ゲージの計算と適用
+        const pL = Math.min(100, (Math.abs(data.left_rpm) / MAX_RPM) * 100);
+        const pR = Math.min(100, (Math.abs(data.right_rpm) / MAX_RPM) * 100);
+        
+        const bL = document.getElementById('barL');
+        const bR = document.getElementById('barR');
+        bL.style.width = pL + "%";
+        bR.style.width = pR + "%";
+        
+        // 方向による色の変化（前進：緑 / 後退：赤）
+        bL.style.background = data.left_rpm >= 0 ? "#00ffc8" : "#ff4b5c";
+        bR.style.background = data.right_rpm >= 0 ? "#00ffc8" : "#ff4b5c";
+      })
+      .catch(e => console.log("Waiting for data..."));
+  }
+
+  function addLog(msg) {
+    const logList = document.getElementById('logList');
+    const div = document.createElement('div');
+    div.innerHTML = `<span style="color:#6b7c96;">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+    logList.appendChild(div);
+    logList.scrollTop = logList.scrollHeight;
+  }
+
+  // 初期化
+  setInterval(updateClock, 1000);
+  setInterval(fetchRobotData, 100); 
+  startStreams();
+  addLog("System Dashboard Initialized.");
+  addLog("Telemetry link active.");
+</script>
+</body>
+</html>

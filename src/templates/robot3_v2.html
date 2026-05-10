@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Robot Control Center</title>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        /* ボタンパネル */
+        .control-panel { display: flex; background: #161b22; padding: 15px; border-radius: 12px; border: 1px solid #30363d; gap: 30px; margin-bottom: 20px; }
+        .group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .group-label { font-size: 11px; color: #8b949e; text-transform: uppercase; }
+        .btn-container { display: flex; gap: 8px; }
+        
+        button { width: 90px; padding: 10px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #21262d; color: #8b949e; transition: 0.2s; }
+        
+        #btn-manual.active { background: #1f6feb; color: white; box-shadow: 0 0 10px #1f6feb; }
+        #btn-auto.active { background: #8957e5; color: white; box-shadow: 0 0 10px #8957e5; }
+        #btn-run.active { background: #238636; color: white; box-shadow: 0 0 10px #238636; }
+        #btn-stop.active { background: #da3633; color: white; box-shadow: 0 0 10px #da3633; }
+
+        /* カメラ */
+        .camera-container { display: flex; gap: 15px; margin-bottom: 20px; }
+        .camera-box { border: 2px solid #30363d; border-radius: 8px; overflow: hidden; background: #000; }
+        img { width: 480px; height: 360px; object-fit: cover; }
+
+        /* データ表示 */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 975px; }
+        .stat-card { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #58a6ff; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <div class="group">
+            <span class="group-label">Drive Mode</span>
+            <div class="btn-container">
+                <button id="btn-manual" class="active" onclick="sendControl({mode: 'manual'})">MANUAL</button>
+                <button id="btn-auto" onclick="sendControl({mode: 'auto'})">AUTO</button>
+            </div>
+        </div>
+        <div class="group">
+            <span class="group-label">System State</span>
+            <div class="btn-container">
+                <button id="btn-run" onclick="sendControl({status: 'run'})">RUN</button>
+                <button id="btn-stop" class="active" onclick="sendControl({status: 'stop'})">STOP</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="camera-container">
+        <div class="camera-box"><img src="/video_feed_0"></div>
+        <div class="camera-box"><img src="/video_feed_2"></div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><div>LEFT RPM</div><div id="val-left" class="stat-value">0.0</div></div>
+        <div class="stat-card"><div>RIGHT RPM</div><div id="val-right" class="stat-value">0.0</div></div>
+    </div>
+
+    <script>
+        function sendControl(payload) {
+            fetch('/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            }).then(() => {
+                if(payload.mode) updateModeUI(payload.mode);
+                if(payload.status) updateStateUI(payload.status);
+            });
+        }
+
+        function updateModeUI(mode) {
+            document.getElementById('btn-manual').className = (mode === 'manual' ? 'active' : '');
+            document.getElementById('btn-auto').className = (mode === 'auto' ? 'active' : '');
+        }
+
+        function updateStateUI(state) {
+            document.getElementById('btn-run').className = (state === 'run' ? 'active' : '');
+            document.getElementById('btn-stop').className = (state === 'stop' ? 'active' : '');
+        }
+
+        function updateData() {
+            fetch('/robot_data')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('val-left').innerText = data.left_rpm.toFixed(1);
+                    document.getElementById('val-right').innerText = data.right_rpm.toFixed(1);
+                    // サーバー側でモードが変わっていた場合もUIに反映
+                    updateModeUI(data.mode);
+                    updateStateUI(data.status);
+                });
+        }
+        setInterval(updateData, 200);
+    </script>
+</body>
+</html>

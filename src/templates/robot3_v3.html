@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Robot Control Center</title>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .control-panel { display: flex; background: #161b22; padding: 15px; border-radius: 12px; border: 1px solid #30363d; gap: 30px; margin-bottom: 20px; }
+        .group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .group-label { font-size: 11px; color: #8b949e; text-transform: uppercase; }
+        .btn-container { display: flex; gap: 8px; }
+        button { width: 90px; padding: 10px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #21262d; color: #8b949e; transition: 0.2s; }
+        #btn-manual.active { background: #1f6feb; color: white; box-shadow: 0 0 10px #1f6feb; }
+        #btn-auto.active { background: #8957e5; color: white; box-shadow: 0 0 10px #8957e5; }
+        #btn-run.active { background: #238636; color: white; box-shadow: 0 0 10px #238636; }
+        #btn-stop.active { background: #da3633; color: white; box-shadow: 0 0 10px #da3633; }
+        .camera-container { display: flex; gap: 15px; margin-bottom: 20px; }
+        img { width: 480px; height: 360px; border: 2px solid #30363d; border-radius: 8px; background: #000; }
+        .stats { display: flex; gap: 20px; }
+        .stat-card { background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; min-width: 150px; text-align: center; }
+        .stat-value { font-size: 28px; font-weight: bold; color: #58a6ff; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <div class="group">
+            <span class="group-label">Drive Mode</span>
+            <div class="btn-container">
+                <button id="btn-manual" class="active" onclick="sendState({mode: 'manual'})">MANUAL</button>
+                <button id="btn-auto" onclick="sendState({mode: 'auto'})">AUTO</button>
+            </div>
+        </div>
+        <div class="group">
+            <span class="group-label">System State</span>
+            <div class="btn-container">
+                <button id="btn-run" onclick="sendState({status: 'run'})">RUN</button>
+                <button id="btn-stop" class="active" onclick="sendState({status: 'stop'})">STOP</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="camera-container">
+        <img src="/video_feed_0">
+        <img src="/video_feed_2">
+    </div>
+
+    <div class="stats">
+        <div class="stat-card"><div>LEFT RPM</div><div id="l-rpm" class="stat-value">0.0</div></div>
+        <div class="stat-card"><div>RIGHT RPM</div><div id="r-rpm" class="stat-value">0.0</div></div>
+    </div>
+
+    <script>
+        function sendState(payload) {
+            fetch('/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+        }
+
+        function updateUI() {
+            fetch('/robot_data')
+                .then(res => res.json())
+                .then(data => {
+                    // ボタンの色更新
+                    document.getElementById('btn-manual').className = (data.mode === 'manual' ? 'active' : '');
+                    document.getElementById('btn-auto').className = (data.mode === 'auto' ? 'active' : '');
+                    document.getElementById('btn-run').className = (data.status === 'run' ? 'active' : '');
+                    document.getElementById('btn-stop').className = (data.status === 'stop' ? 'active' : '');
+                    // 数値更新
+                    document.getElementById('l-rpm').innerText = data.left_rpm.toFixed(1);
+                    document.getElementById('r-rpm').innerText = data.right_rpm.toFixed(1);
+                });
+        }
+        setInterval(updateUI, 200);
+    </script>
+</body>
+</html>
