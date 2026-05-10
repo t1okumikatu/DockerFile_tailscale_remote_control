@@ -10,7 +10,7 @@ services:
       - GO2RTC_CONFIG=/config/go2rtc.yaml
     devices:
       - /dev/video0:/dev/video0
-      - /dev/video2:/dev/video2  # 追加：ロボット制御用カメラも必要なら
+      - /dev/video2:/dev/video2
     volumes:
       - ./config:/config
 
@@ -29,17 +29,23 @@ services:
     restart: always
 
   robot-app:
-    build: .  # カレントディレクトリのDockerfileを使用
+    image: python:3.11-slim
     container_name: robot-control
     volumes:
       - .:/app
+    working_dir: /app
     privileged: true
     devices:
-      # スケッチ内で指定しているFTDIのデバイスIDをマッピング
       - "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B0001KJH-if00-port0:/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B0001KJH-if00-port0"
       - "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B003725S-if00-port0:/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B003725S-if00-port0"
     ports:
       - "5000:5000"
-    # venv内のpythonを使用してsrcディレクトリのスケッチを実行
-    command: /opt/venv/bin/python src/integrated_server_v9.py
     restart: always
+    # Dockerfileなしで動かすための「ワンライナー」コマンド
+    # 1. 必要なOSライブラリ(OpenCV用)をインストール
+    # 2. Pythonライブラリをインストール
+    # 3. スケッチを実行
+    command: >
+      sh -c "apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 &&
+             pip install --no-cache-dir flask flask-cors opencv-contrib-python numpy pyserial &&
+             python src/integrated_server_v9.py"
