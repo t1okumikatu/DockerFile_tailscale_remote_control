@@ -46,6 +46,6 @@ services:
     # 2. Pythonライブラリをインストール
     # 3. スケッチを実行
     command: >
-      sh -c "apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 &&
+      sh -c "apt-get update && apt-get install -y libgl1 libglib2.0-0 &&
              pip install --no-cache-dir flask flask-cors opencv-contrib-python numpy pyserial &&
              python src/integrated_server_v9.py"
