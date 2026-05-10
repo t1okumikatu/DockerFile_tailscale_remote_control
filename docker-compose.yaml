@@ -10,7 +10,7 @@ services:
       - GO2RTC_CONFIG=/config/go2rtc.yaml
     devices:
       - /dev/video0:/dev/video0
-      - /dev/ttyACM0:/dev/ttyACM0  # ← 1で確認した名前に合わせて書き換え   
+      - /dev/video2:/dev/video2  # 追加：ロボット制御用カメラも必要なら
     volumes:
       - ./config:/config
 
@@ -29,13 +29,17 @@ services:
     restart: always
 
   robot-app:
-    image: python:3.11-slim
+    build: .  # カレントディレクトリのDockerfileを使用
     container_name: robot-control
     volumes:
       - .:/app
-    working_dir: /app
     privileged: true
-    tty: true
-    stdin_open: true
-    command: python3 --version
+    devices:
+      # スケッチ内で指定しているFTDIのデバイスIDをマッピング
+      - "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B0001KJH-if00-port0:/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B0001KJH-if00-port0"
+      - "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B003725S-if00-port0:/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B003725S-if00-port0"
+    ports:
+      - "5000:5000"
+    # venv内のpythonを使用してsrcディレクトリのスケッチを実行
+    command: /opt/venv/bin/python src/integrated_server_v9.py
     restart: always
