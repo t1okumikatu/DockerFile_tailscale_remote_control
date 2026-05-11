@@ -1,0 +1,14 @@
+services:
+  robot-app:
+    image: python:3.11-slim
+    # ... 他の設定 ...
+    devices:
+      # 左車輪用 (by-idで指定)
+      - "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B0001KJH-if00-port0:/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B0001KJH-if00-port0"
+      # 右車輪用 (by-idで指定)
+      - "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B003725S-if00-port0:/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_B003725S-if00-port0"
+      # 【重要】ここにKeigan MotorのIDを追記します
+      - "/dev/serial/by-id/[ここにKeiganMotorのID]:/dev/serial/by-id/[ここにKeiganMotor의ID]"
+    
+    privileged: true  # 確実にシリアル通信を通すために推奨
+    user: root        # 権限問題を避けるためにrootで実行
